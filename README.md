@@ -1,2 +1,1 @@
-hello world
-hi
+CS307 project -- group 8
