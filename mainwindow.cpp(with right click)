@@ -97,7 +97,7 @@ void MainWindow::on_tableView_customContextMenuRequested(const QPoint &pos)
 
 
     QMenu rightClickMenu;
-    rightClickMenu.addAction("fixtage");
+    rightClickMenu.addAction("fixtag");
     // ...
 
     QAction* selectedItem = rightClickMenu.exec(globalPos);
