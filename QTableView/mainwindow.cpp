@@ -15,8 +15,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),ui(new Ui::MainWin
     ui->tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
 
     //use following commented out code to add action
-//    connect(musicTable, SIGNAL(cellPressed(int,int)),
-//            this, SLOT(tableClicked(int,int)));
+    connect(ui->tableView, SIGNAL(cellPressed(int,int)),
+            this, SLOT(tableClicked(int,int)));
     ui->tableView->setModel(model);
     setupActions();
     setupMenus  ();
@@ -73,7 +73,10 @@ void MainWindow::about()
     QMessageBox::information(this, tr("About Music Player"),
         tr("The Music tagger will automatically fix your tags"));
 }
-
+void MainWindow::tableClicked(int row, int /* column */)
+{
+    currentRow = row;
+}
 MainWindow::~MainWindow()
 {
     delete ui;

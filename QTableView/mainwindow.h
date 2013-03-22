@@ -26,6 +26,7 @@ public:
 public slots:
     void addFiles();
     void about();
+    void tableClicked(int,int);
 
     
 private:
@@ -35,6 +36,7 @@ private:
     QAction *exitAction;
     QAction *aboutAction;
     QAction *aboutQtAction;
+    int currentRow;//used as index in file list to fix tag.
 };
 
 #endif // MAINWINDOW_H
