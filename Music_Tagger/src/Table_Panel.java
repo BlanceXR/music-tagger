@@ -1,35 +1,136 @@
-/* This class builds the Table_Panel for music selections, it also contains functions for updating music tag info 
- * 
+// /* This class builds the Table_Panel for music selections, it also contains functions for updating music tag info
+//  *
+//  * Methods:
+//  *
+//  */
+
+// import java.awt.BorderLayout;
+// import javax.swing.JPanel;
+// import javax.swing.JScrollPane;
+// import javax.swing.JTable;
+
+
+// public class Table_Panel
+// {
+
+// 	// objects
+// 	JPanel panel;
+// 	JScrollPane scrollPane;
+// 	JTable table;
+// 	String[] tag_names = { "Title", "Artist", "Album", "Release Year", "Comment" };
+// 	Object[][] data = { { "Jack", "is", "Demonstrating", "enjoy", "it" }, { "Jack", "is", "Demonstrating", "enjoy", "it" } };
+
+
+// 	// constructor
+// 	public Table_Panel()
+// 	{
+// 		table = new JTable( data, tag_names );
+
+// 		scrollPane = new JScrollPane( table );
+
+// 		panel = new JPanel( new BorderLayout() );
+// 		panel.add( scrollPane, BorderLayout.CENTER );
+// 	}
+
+// }
+/* This class builds the Table_Panel for music selections, it also contains functions for updating music tag info
+ *
  * Methods:
- * 		
+ *
  */
 
 import java.awt.BorderLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.JPopupMenu;
+import java.io.File;
+import javax.swing.table.DefaultTableModel;
 
-
-public class Table_Panel
+public class Table_Panel extends MouseAdapter
 {
-	
+
 	// objects
 	JPanel panel;
 	JScrollPane scrollPane;
 	JTable table;
 	String[] tag_names = { "Title", "Artist", "Album", "Release Year", "Comment" };
-	Object[][] data = { { "Jack", "is", "Demonstrating", "enjoy", "it" }, { "Jack", "is", "Demonstrating", "enjoy", "it" } };
+	//Object[][] data = { { "Jack", "is", "Demonstrating", "enjoy", "it" }, { "Jack", "is", "Demonstrating", "enjoy", "it" } };
+	Object[][] data = { };
+	//popup
+	JPopupMenu popup;
+	JMenuItem fixall;
+	JMenuItem tag, delete, select, clean;
 
-	
 	// constructor
 	public Table_Panel()
-	{   
-		table = new JTable( data, tag_names );
-		
+	{
+		table = new JTable(new DefaultTableModel( data, tag_names) );
+
 		scrollPane = new JScrollPane( table );
-		
+
 		panel = new JPanel( new BorderLayout() );
 		panel.add( scrollPane, BorderLayout.CENTER );
+		//pop up
+		popup=new JPopupMenu();
+		fixall=new JMenuItem("Fix All");
+		tag = new JMenuItem("Fix Tag");
+		delete = new JMenuItem("Delete");
+		select = new JMenuItem("Select All");
+		clean = new JMenuItem("Clean");
+		popup.add(fixall);
+		popup.add(tag);
+		popup.add(delete);
+		popup.add(select);
+		popup.add(clean);
+
+		table.addMouseListener( new MouseAdapter()
+		{
+
+			public void mousePressed(MouseEvent e)
+			{
+
+				if (e.isPopupTrigger())
+				{
+
+					JTable source = (JTable)e.getSource();
+					int row = source.rowAtPoint( e.getPoint() );
+					int column = source.columnAtPoint( e.getPoint() );
+
+					if (! source.isRowSelected(row)){
+						source.changeSelection(row, column, false, false);
+
+					}
+					popup.show(e.getComponent(), e.getX(), e.getY());
+				}
+			}
+			public void mouseReleased(MouseEvent e)
+			{
+
+				if (e.isPopupTrigger())
+				{
+
+					JTable source = (JTable)e.getSource();
+					int row = source.rowAtPoint( e.getPoint() );
+					int column = source.columnAtPoint( e.getPoint() );
+
+					if (! source.isRowSelected(row)){
+						source.changeSelection(row, column, false, false);
+
+					}
+					popup.show(e.getComponent(), e.getX(), e.getY());
+
+				}
+			}
+		});
 	}
-	
+	//used to insert table content when new file is added
+	public void insert(File file) {
+		DefaultTableModel model = (DefaultTableModel) table.getModel();
+		model.addRow(new Object[]{"Column 1", "Column 2", "Column 3" , "c4", "c5"});
+	}
 }

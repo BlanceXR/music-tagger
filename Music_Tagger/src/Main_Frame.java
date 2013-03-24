@@ -18,22 +18,36 @@ import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JMenuBar;
 import javax.swing.JPanel;
-
+import java.util.*;
+import java.io.File;
 
 public class Main_Frame
 {
 	
 	// objects
 	JFrame mainFrame;
-	
+	Menu mn; 
+	static Table_Panel tp;
+	static Cover_Lyrics_Panel clp;
+	public static Vector<File> fileVector = new Vector<File>();
 	// constructor
 	public Main_Frame()
 	{
 		mainFrame = new JFrame();
 		mainFrame.setLayout( new BoxLayout(mainFrame.getContentPane(), BoxLayout.LINE_AXIS) );
 		mainFrame.setTitle("Music Tagger");
-		mainFrame.setSize( 1500,800 );
+		
 		mainFrame.pack();
+		//initialize frame
+		
+		mn = new Menu();
+		tp = new Table_Panel();
+		clp = new Cover_Lyrics_Panel();
+		addMenu( mn.menu_bar );
+		addPanel( tp.panel, new Dimension(0,0) );
+		addPanel( clp.panel, new Dimension(0,0) );
+		show();
+		mainFrame.setSize( 1500,800 );
 	}
 	
 	// add menu bar, menu items, etc.
@@ -52,19 +66,15 @@ public class Main_Frame
 	// display the frame
 	public void show()
 	{	mainFrame.setVisible( true );	}
-
+	
+	//need to update the mainFrame when new file is added or after meta info been fixed
+	public static void insertNew(File file){
+		tp.insert(file);
+	}
 	// main
 	public static void main(String args[])
 	{
 		Main_Frame mf = new Main_Frame();
-		Menu mn = new Menu();
-		Table_Panel tp = new Table_Panel();
-		Cover_Lyrics_Panel clp = new Cover_Lyrics_Panel();
-		
-		mf.addMenu( mn.menu_bar );
-		mf.addPanel( tp.panel, new Dimension(0,0) );
-		mf.addPanel( clp.panel, new Dimension(0,0) );
-		mf.show();
 	}
 
 }
