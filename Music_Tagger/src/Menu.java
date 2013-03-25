@@ -2,6 +2,7 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.*;
@@ -34,19 +35,33 @@ public class Menu
 		exit = new JMenuItem("Exit");
 		
 		file.add(open);
-		file.add(exit);
 		open.addActionListener(
 				new ActionListener(){
 						public void actionPerformed(ActionEvent e){
 							int returnVal = fc.showOpenDialog(open);
 							 if (returnVal == JFileChooser.APPROVE_OPTION) {
-						            File currentOpenFile = fc.getSelectedFile();
-						        	Main_Frame.fileVector.add(currentOpenFile);
-						        	Main_Frame.insertNew(currentOpenFile);
+						            File currentFile = fc.getSelectedFile();
+						            String filename = currentFile.getName();
+						            String extension = filename.substring(filename.lastIndexOf(".") + 1, filename.length());
+
+						            String mp3extension = "mp3";
+						            if (extension != mp3extension) {
+						                JOptionPane.showMessageDialog(null, "Currently We only support MP3 file");
+						            }else{
+							        	Main_Frame.fileVector.add(currentFile);
+							        	Main_Frame.insertNew(currentFile);
+						            }
 						        } else {
 						            //did not open successfully
 						        }
 						}
+				});
+		file.add(exit);
+		exit.addActionListener(
+				new ActionListener(){
+					public void actionPerformed(ActionEvent e){
+						System.exit(0);
+					}
 				});
 		menu_bar.add(file);
 	

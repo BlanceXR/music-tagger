@@ -67,10 +67,16 @@ public class Table_Panel extends MouseAdapter
 	JMenuItem tag, delete, select, clean;
 
 	// constructor
-	public Table_Panel()
-	{
-		table = new JTable(new DefaultTableModel( data, tag_names) );
-
+	public Table_Panel(){
+		table = new JTable(new DefaultTableModel( data, tag_names) ){
+		    public boolean isCellEditable(int rowIndex, int colIndex) {
+		        return false;   //Disallow the editing of any cell
+		    }
+		};
+		table.setCellSelectionEnabled(false);
+		table.setRowSelectionAllowed(true);
+		
+		
 		scrollPane = new JScrollPane( table );
 
 		panel = new JPanel( new BorderLayout() );
@@ -103,27 +109,22 @@ public class Table_Panel extends MouseAdapter
 
 					if (! source.isRowSelected(row)){
 						source.changeSelection(row, column, false, false);
-
 					}
 					popup.show(e.getComponent(), e.getX(), e.getY());
 				}
 			}
 			public void mouseReleased(MouseEvent e)
 			{
-
 				if (e.isPopupTrigger())
 				{
-
 					JTable source = (JTable)e.getSource();
 					int row = source.rowAtPoint( e.getPoint() );
 					int column = source.columnAtPoint( e.getPoint() );
 
 					if (! source.isRowSelected(row)){
 						source.changeSelection(row, column, false, false);
-
 					}
 					popup.show(e.getComponent(), e.getX(), e.getY());
-
 				}
 			}
 		});
