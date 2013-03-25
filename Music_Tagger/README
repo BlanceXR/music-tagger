@@ -1,1 +1,8 @@
-this is the newer version of our gui
+
+
+Dependency:
+jar resourece:
+1.lastfm java binding:
+  http://code.google.com/p/lastfm-java/
+2.jid3lib java binding:
+  http://javamusictag.sourceforge.net/download.htm
