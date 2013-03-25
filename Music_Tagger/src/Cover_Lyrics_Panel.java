@@ -39,41 +39,49 @@ public class Cover_Lyrics_Panel
 		panel.add(label,BorderLayout.NORTH);
    }
 	
+	//display cover image
 	public int set_cover( BufferedImage image ){
 		//todo
 		return 0;
 	}
 	
+	//display cover image
 	public int set_cover ( File cover_file ){
 		//todo
 		return 0;
 	}
 	
+	//undisplay cover image
 	public int unset_cover(){
 		//todo
 		return 0;
 	}
 
+	//save image to file
 	public int save_cover( File cover_file ){
 		
 		return 0;
 	}
 	
+	//display lyrics
 	public int set_lyrics( String lyric ){
 		//todo
 		return 0;
 	}
 	
+	//display lyrics
 	public int set_lyrics( File lyrics_file ){
 		//todo
 		return 0;
 	}
 	
+	//undisplay lyrics
 	public int unset_lyrics(){
 		
 		return 0;
 	}
 	
+	//save lyrics to file
 	public int save_lyrice( File lyrics_file ){
 		
 		return 0;
