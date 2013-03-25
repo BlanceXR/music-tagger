@@ -29,7 +29,8 @@ public class Main_Frame
 	Menu mn; 
 	static Table_Panel tp;
 	static Cover_Lyrics_Panel clp;
-	public static Vector<File> fileVector = new Vector<File>();
+	public static Vector<MP3FILE> fileVector = new Vector<MP3FILE>();
+	
 	// constructor
 	public Main_Frame()
 	{
@@ -68,7 +69,7 @@ public class Main_Frame
 	{	mainFrame.setVisible( true );	}
 	
 	//need to update the mainFrame when new file is added or after meta info been fixed
-	public static void insertNew(File file){
+	public static void insertNew(MP3FILE file){
 		tp.insert(file);
 	}
 	// main

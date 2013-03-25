@@ -43,13 +43,19 @@ public class Menu
 						            File currentFile = fc.getSelectedFile();
 						            String filename = currentFile.getName();
 						            String extension = filename.substring(filename.lastIndexOf(".") + 1, filename.length());
-
 						            String mp3extension = "mp3";
-						            if (extension != mp3extension) {
+						            if (extension.compareTo(mp3extension) != 0) {
 						                JOptionPane.showMessageDialog(null, "Currently We only support MP3 file");
-						            }else{
-							        	Main_Frame.fileVector.add(currentFile);
-							        	Main_Frame.insertNew(currentFile);
+						            }else{						        	
+							        	MP3FILE mp3;
+										try {
+											mp3 = new MP3FILE(currentFile);
+											Main_Frame.fileVector.add(mp3);
+											Main_Frame.insertNew(mp3);
+										} catch (Exception e1) {
+											// TODO Auto-generated catch block
+											e1.printStackTrace();
+										}						        	
 						            }
 						        } else {
 						            //did not open successfully

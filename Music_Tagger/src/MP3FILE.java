@@ -16,7 +16,7 @@ import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 
 public class MP3FILE {
-  public static String Fingerprint = "/home/wlz/workspace/Music-tagger/Fingerprinter/bin/lastfm-fpclient";
+	public static String Fingerprint = "../FPclient/lastfmfpclient";
 	
 	public File file;
 	public MP3File mp3_file;
@@ -43,10 +43,10 @@ public class MP3FILE {
 	public BufferedImage cover;
 	public BufferedImage artist_photo;
 	
-	public MP3FILE( String path ) throws Exception{
+	public MP3FILE(File file) throws Exception{
 		
-		mp3_path = path;
-		file = new File(mp3_path);
+//		mp3_path = path;
+//		file = new File(mp3_path);
 		mp3_file = new MP3File(file);
 		
 		if(mp3_file.hasID3v2Tag()){

@@ -130,8 +130,9 @@ public class Table_Panel extends MouseAdapter
 		});
 	}
 	//used to insert table content when new file is added
-	public void insert(File file) {
+	public void insert(MP3FILE file) {
+		
 		DefaultTableModel model = (DefaultTableModel) table.getModel();
-		model.addRow(new Object[]{"Column 1", "Column 2", "Column 3" , "c4", "c5"});
+		model.addRow(new Object[]{file.title,file.artist, file.album, file.release_Date , file.length});
 	}
 }
