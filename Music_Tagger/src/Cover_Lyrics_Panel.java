@@ -21,7 +21,7 @@ public class Cover_Lyrics_Panel
 	JTextArea lyrics_field;
 	String lyrics;
 
-	public Cover_Lyrics_Panel(BufferedImage image)
+	public Cover_Lyrics_Panel()
 	{
 		lyrics = new String();
 		cover = null;
