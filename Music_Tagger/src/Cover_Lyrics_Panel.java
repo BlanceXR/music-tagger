@@ -54,6 +54,11 @@ public class Cover_Lyrics_Panel
 		return 0;
 	}
 
+	public int save_cover( File cover_file ){
+		
+		return 0;
+	}
+	
 	public int set_lyrics( String lyric ){
 		//todo
 		return 0;
@@ -65,6 +70,11 @@ public class Cover_Lyrics_Panel
 	}
 	
 	public int unset_lyrics(){
+		
+		return 0;
+	}
+	
+	public int save_lyrice( File lyrics_file ){
 		
 		return 0;
 	}
