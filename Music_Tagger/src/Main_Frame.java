@@ -25,7 +25,7 @@ public class Main_Frame
 {
 	
 	// objects
-	JFrame mainFrame;
+	static JFrame mainFrame;
 	Menu mn; 
 	static Table_Panel tp;
 	static Cover_Lyrics_Panel clp;
@@ -49,6 +49,7 @@ public class Main_Frame
 		addPanel( clp.panel, new Dimension(0,0) );
 		show();
 		mainFrame.setSize( 1500,800 );
+		
 	}
 	
 	// add menu bar, menu items, etc.
@@ -69,7 +70,8 @@ public class Main_Frame
 	{	mainFrame.setVisible( true );	}
 	
 	//need to update the mainFrame when new file is added or after meta info been fixed
-	public static void insertNew(MP3FILE file){
+	public static void insertNew(MP3FILE  file){
+		
 		tp.insert(file);
 	}
 	public static void update(MP3FILE file){
