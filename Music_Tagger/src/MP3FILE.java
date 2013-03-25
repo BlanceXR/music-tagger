@@ -45,7 +45,7 @@ public class MP3FILE {
 	
 	public MP3FILE(File file) throws Exception{
 		
-//		mp3_path = path;
+		mp3_path = file.getAbsolutePath();
 //		file = new File(mp3_path);
 		mp3_file = new MP3File(file);
 		

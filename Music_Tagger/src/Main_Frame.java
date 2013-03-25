@@ -72,6 +72,9 @@ public class Main_Frame
 	public static void insertNew(MP3FILE file){
 		tp.insert(file);
 	}
+	public static void update(MP3FILE file){
+		//TODO: 
+	}
 	// main
 	public static void main(String args[])
 	{

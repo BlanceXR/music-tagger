@@ -40,10 +40,14 @@
  */
 
 import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
+import javax.swing.JFileChooser;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -94,6 +98,12 @@ public class Table_Panel extends MouseAdapter
 		popup.add(select);
 		popup.add(clean);
 
+		tag.addActionListener(new ActionListener(){
+						public void actionPerformed(ActionEvent e){
+							//TODO: fix tag here
+							
+						}
+				});
 		table.addMouseListener( new MouseAdapter()
 		{
 
