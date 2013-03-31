@@ -10,9 +10,11 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.*;
 import java.io.File;
+import java.util.Vector;
 
 public class Menu
 {
+	
 	JMenuBar menu_bar;
 	//File currentOpenFile;
 	JMenu file;
@@ -22,8 +24,8 @@ public class Menu
 	JMenuItem tag, delete, select, clean; 
 	final JFileChooser fc = new JFileChooser();
 	
-	public Menu()
-	{
+	public Menu(  )
+	{	
 		menu_bar = new JMenuBar();
 		createFileMenu();
 		createEditMenu();
@@ -41,7 +43,7 @@ public class Menu
 		file.add(open);
 		fc.setMultiSelectionEnabled(true);
 		open.addActionListener(
-				new ActionListener(){
+				new ActionListener(){//System.out.println("clean");
 						public void actionPerformed(ActionEvent e){
 							int returnVal = fc.showOpenDialog(open);
 							 if (returnVal == JFileChooser.APPROVE_OPTION) {
@@ -61,7 +63,7 @@ public class Menu
 						            	
 										try {
 											mp3[i] = new MP3FILE(currentFile[i]);
-											Main_Frame.fileVector.add(mp3[i]);
+											Main_Frame.filevector.add(mp3[i]);
 											Main_Frame.insertNew(mp3[i]);
 										} catch (Exception e1) {
 											// TODO Auto-generated catch block
@@ -108,7 +110,7 @@ public class Menu
 		tag.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
 				//TODO:  ckean tag here
-				System.out.println("fix");
+//				System.out.println("fix");
 			}
 	});
 
@@ -124,9 +126,9 @@ public class Menu
 				for(int i=selecetdRowsCount-1;i>=0;i--){
 					
 				model.removeRow(selecetdRows[i]);
-				Main_Frame.fileVector.removeElementAt(selecetdRows[i]);
+				Main_Frame.filevector.removeElementAt(selecetdRows[i]);
 				}
-				System.out.println("delete");
+//				System.out.println("delete");
 			}
 	});
 		select.addActionListener(new ActionListener(){
@@ -134,7 +136,7 @@ public class Menu
 				//TODO: select all tag here
 				DefaultTableModel model = (DefaultTableModel) Table_Panel.table.getModel();
 				Table_Panel.table.addRowSelectionInterval(0,model.getRowCount()-1);
-				System.out.println("select all");
+//				System.out.println("select all");
 			}
 	});
 		clean.addActionListener(new ActionListener(){
@@ -143,9 +145,9 @@ public class Menu
 				DefaultTableModel model = (DefaultTableModel) Table_Panel.table.getModel();
 				for(int i=model.getRowCount()-1;i>=0;i--){
 				model.removeRow(i);
-				Main_Frame.fileVector.removeElementAt(i);
+				Main_Frame.filevector.removeElementAt(i);
 				}
-				System.out.println("clean");
+//				System.out.println("clean");
 			}
 	});
 		
