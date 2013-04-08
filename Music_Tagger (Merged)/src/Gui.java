@@ -1,6 +1,8 @@
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -11,9 +13,11 @@ import java.io.IOException;
 import java.util.Vector;
 
 import javax.imageio.ImageIO;
+import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -29,7 +33,8 @@ import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
-import javax.swing.SwingUtilities;
+import javax.swing.border.Border;
+import javax.swing.border.EtchedBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
@@ -39,49 +44,52 @@ public class Gui extends JFrame
 {
 	
 	//////////////////////  Objects  /////////////////////////
+	//JDialog j; 
 	
 	//////// Menu ////////
 	JMenuBar menu_bar;
 	JMenu menu_file;
 	JMenuItem file_open, file_exit;
 	JMenu menu_edit;
-	JMenuItem edit_tag, edit_delete, edit_select, edit_clean;
+	JMenuItem edit_fix_all , edit_tag, edit_delete, edit_select_all, edit_clean;
 	final JFileChooser filechooser = new JFileChooser();
 	
 	//////// Table_Panel /////////
-	JPanel table_panel;
-	JScrollPane table_panel_scroll;
+	JPanel table_panel,button_panel;
+	JTextArea table_log;
+	JScrollPane table_panel_scroll,table_log_scroll;
+	JButton autofix_button,saveimage_button,rename_button;
+	JFileChooser savedialog;
 	JTable table_panel_table;
 	String[] categories = { "Title", "Artist", "Album", "Release Year", "Comment" };
 	Object[][] data = { };
 	JPopupMenu popup;
 	JMenuItem popup_fixall, popup_tag, popup_delete, popup_selectall, popup_clean;
-	int rowsSelected[];
-	int rowsSelectedCount;
+	int selectedRows[];
+	int selectedRowCount;
+	int currentRowIndex;
 	
 	//////// Side_Panel /////////
-	JPanel side_panel, album_panel, lyrics_panel;
+	JPanel side_panel,album_panel,lyrics_panel;
 	BufferedImage default_cover, cover;
-	ImageIcon icon;
 	JLabel album_title,lyrics_title;
 	JLabel album_art;
 	JScrollPane side_panel_scroll;
 	JTextArea lyrics_field;
-	String lyrics;
-	static int currentindex;
+	String Lyrics;
 	
 	///// ID3V1 /////	
 	JLabel Label_Title_ID3V1;
 	JLabel Label_Year_ID3V1;
 	JLabel Label_Artist_ID3V1;
-	JLabel Label_Composer_ID3V1;
+	//JLabel Label_Composer_ID3V1;
 	JLabel Label_Album_ID3V1;
 	JLabel Label_Comment_ID3V1;
 	JLabel Label_Genre_ID3V1;
 	final JTextField Text_Title_ID3V1 = new JTextField(  );
 	final JTextField Text_Year_ID3V1 = new JTextField(  );
 	final JTextField Text_Artist_ID3V1 = new JTextField(  );
-	final JTextField Text_Composer_ID3V1 = new JTextField(  );
+	//final JTextField Text_Composer_ID3V1 = new JTextField(  );
 	final JTextField Text_Album_ID3V1 = new JTextField(  );
 	final JTextField Text_Comment_ID3V1 = new JTextField(  );
 	final JTextField Text_Genre_ID3V1 = new JTextField(  );
@@ -92,14 +100,14 @@ public class Gui extends JFrame
 	JLabel Label_Title_ID3V2;
 	JLabel Label_Year_ID3V2;
 	JLabel Label_Artist_ID3V2;
-	JLabel Label_Composer_ID3V2;
+	//JLabel Label_Composer_ID3V2;
 	JLabel Label_Album_ID3V2;
 	JLabel Label_Comment_ID3V2;
 	JLabel Label_Genre_ID3V2;		
 	final JTextField Text_Title_ID3V2 = new JTextField(  );
 	final JTextField Text_Year_ID3V2 = new JTextField(  );
 	final JTextField Text_Artist_ID3V2 = new JTextField(  );
-	final JTextField Text_Composer_ID3V2 = new JTextField(  );
+	//final JTextField Text_Composer_ID3V2 = new JTextField(  );
 	final JTextField Text_Album_ID3V2 = new JTextField(  );
 	final JTextField Text_Comment_ID3V2 = new JTextField(  );
 	final JTextField Text_Genre_ID3V2 = new JTextField(  );
@@ -109,15 +117,16 @@ public class Gui extends JFrame
 	//////// MP3_FILE /////////
 	Vector <MP3FILE> filevector;
 	static boolean singleton = false; 
+	static Gui gui = null;
 	
 	// getter method for Frame_Gui
 	public static Gui getGui()
 	{
-		if( singleton == true)
-			return null;
-		singleton = true;
-		Gui temp_main = new Gui();
-		return temp_main;
+		if( !singleton ){
+			singleton = true;
+			gui = new Gui();
+		}
+		return gui;
 	}
 	
 	//////////////// Constructor ////////////////
@@ -141,6 +150,7 @@ public class Gui extends JFrame
 
 	private void constructTablePanel()
 	{
+		//j = new JDialog(this, "Tag Fixing.... please wait");
 		table_panel_table = new JTable( new DefaultTableModel( data, categories ) ){
 			//Disallow the editing of any cell
 			public boolean isCellEditable(int rowIndex, int colIndex) {
@@ -150,30 +160,118 @@ public class Gui extends JFrame
 		table_panel_table.setCellSelectionEnabled(false);
 		table_panel_table.setRowSelectionAllowed(true);
 		table_panel_scroll = new JScrollPane( table_panel_table );
-		table_panel_scroll.addMouseListener(new MouseAdapter(){
-			public void mouseClicked(MouseEvent e)
-			{
-				if(SwingUtilities.isLeftMouseButton(e)){
-					int rowcount=table_panel_table.getSelectedRowCount();
-					if(rowcount>0){
-						table_panel_table.clearSelection();
+		table_panel = new JPanel( new BorderLayout() );
+		table_panel.add( table_panel_scroll, BorderLayout.CENTER );
+		table_log = new JTextArea();
+		table_log_scroll = new JScrollPane( table_log );
+		table_panel.add(table_log_scroll,BorderLayout.SOUTH);
+		autofix_button = new JButton(new ImageIcon("autofix.jpg")); 
+		saveimage_button = new JButton(new ImageIcon("save.jpg"));
+		rename_button = new JButton(new ImageIcon("rename.jpg"));
+		button_panel = new JPanel( new FlowLayout(FlowLayout.LEFT));
+		button_panel.add(autofix_button);
+		button_panel.add(saveimage_button);
+		button_panel.add(rename_button);
+		table_panel.add(button_panel,BorderLayout.NORTH);
+		createPopup();
+		
+		autofix_button.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub
+				//j.setVisible(true);
+				int totalRows = table_panel_table.getRowCount();
+				for ( int row = 0; row < totalRows; row++ ){
+					try{
+						filevector.get(row).get_correct_tag();
+						update( row );
+					}catch( Exception E ){
+						E.printStackTrace();
+					}
+				}
+				refreshID3v1();
+				refreshID3v2();
+				refreshCover();
+				refreshLyrics();
+				//j.setVisible(false);
+			}
+		});
+		
+		savedialog = new JFileChooser();
+		saveimage_button.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub
+				if( default_cover != cover ){
+					savedialog.setSelectedFile(new File("untitle.jpg"));
+					int retval = savedialog.showSaveDialog(saveimage_button);
+					if( retval == JFileChooser.APPROVE_OPTION ){
+						File savefile = savedialog.getSelectedFile();
+						try{
+							ImageIO.write(cover,"jpg",savefile);
+						}catch( IOException e1 ){
+						}
 					}
 				}
 			}
 		});
-		table_panel = new JPanel( new BorderLayout() );
-		table_panel.add( table_panel_scroll, BorderLayout.CENTER );
-		createPopup();
+		rename_button.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub
+				if(selectedRowCount > 1){
+					JOptionPane.showMessageDialog(table_panel, "please select single file");
+				}else if(selectedRowCount == 1){
+					File oldfile = filevector.get(currentRowIndex).mp3_file.getMp3file();
+					String oldname = oldfile.getName();
+					String directory = oldfile.getParent();
+					String newname = JOptionPane.showInputDialog(table_panel, "rename to :", oldname,JOptionPane.QUESTION_MESSAGE);
+					if( newname.compareTo(oldname) != 0 ){
+						if( newname.endsWith(".mp3") ){
+							System.out.println("rename processing..");
+							File newfile = new File(directory + "/"+newname);
+							oldfile.renameTo(newfile);
+							try{
+								MP3FILE temp = temp = new MP3FILE(newfile);
+								filevector.set(currentRowIndex, temp);
+								refreshID3v1();
+								refreshID3v2();
+								refreshLyrics();
+								refreshCover();
+							}catch(Exception e3){	
+							}
+						}
+					}
+				}
+			}
+		});
+		
+		table_panel_scroll.addMouseListener(new MouseAdapter(){
+			public void mousePressed(MouseEvent e) {
+				Point point = e.getPoint();
+				if( !table_panel_table.contains(point) ){
+					table_panel_table.clearSelection();
+				}
+			}
+		});		
 		
 		table_panel_table.getSelectionModel().addListSelectionListener(new ListSelectionListener()
 		{
 			@Override
 			public void valueChanged(ListSelectionEvent e) {
 				// TODO Auto-generated method stub
+				System.out.println("row value change");
 				ListSelectionModel model = (ListSelectionModel)e.getSource();
-				int index = model.getAnchorSelectionIndex();
-				if( index != -1 )
-					refresh(index);
+				selectedRowCount = table_panel_table.getSelectedRowCount();
+				if( selectedRowCount > 0 ){
+					currentRowIndex = model.getLeadSelectionIndex();
+					selectedRows = table_panel_table.getSelectedRows();
+				}else{
+					currentRowIndex = -1;
+					selectedRows = null;
+				}	
+				System.out.println("lead selection:" + currentRowIndex);
+				refreshID3v1();
+				refreshID3v2();
+				refreshCover();
+				refreshLyrics();
 			}
 
 		});
@@ -182,72 +280,52 @@ public class Gui extends JFrame
 		{
 			public void mousePressed(MouseEvent e)
 			{
-				JTable source = (JTable)e.getSource();
-				rowsSelectedCount=source.getSelectedRowCount();
-				rowsSelected=new int[rowsSelectedCount];
-				rowsSelected=source.getSelectedRows();
-				currentindex = rowsSelected[0];
+				System.out.println("left click");
 				if (e.isPopupTrigger())
-				{
-					int row = source.rowAtPoint( e.getPoint() );
-					int column = source.columnAtPoint( e.getPoint() );	
-					if (! source.isRowSelected(row)){
-						source.changeSelection(row, column, false, false);
-					}
-					popup.show(e.getComponent(), e.getX(), e.getY());
-				}
-			}
-			
-			public void mouseReleased(MouseEvent e)
-			{
-				/*
-				if (e.isPopupTrigger())
-				{
+				{	
 					JTable source = (JTable)e.getSource();
 					int row = source.rowAtPoint( e.getPoint() );
 					int column = source.columnAtPoint( e.getPoint() );
-
-					if (! source.isRowSelected(row)){
-						source.changeSelection(row, column, false, false);
+					
+					//if no row is selected before right click or if the row at cursor position is not selected, then change selection
+					if( selectedRowCount <= 0 || !source.isRowSelected(row) ){
+						source.setRowSelectionInterval(row, row);
 					}
-					popup.show(e.getComponent(), e.getX(), e.getY());
+					System.out.println("right click pressed");
+					popup.show(e.getComponent(),e.getX(),e.getY());
 				}
-				*/
 			}
 		});
+		
 	}
 	
 	private void constructSidePanel()
 	{
-		currentindex = -1;
+		currentRowIndex = -1;
 		side_panel = new JPanel();
-		side_panel.setLayout( new GridLayout( 3 ,1 ) );
+		side_panel.setLayout(new GridLayout(3,1));
 		
 		//////////////////////////////////       Album  Art       ///////////////////////////////////////////
 		album_panel = new JPanel();
 		album_panel.setLayout( new BoxLayout( album_panel, BoxLayout.LINE_AXIS) );
 //		album_title = new JLabel("Album Arts\n",JLabel.CENTER);
-		cover = null;
-		
+
 		try
-		{	cover = ImageIO.read(new File("default_cover.jpg"));	}
+		{	default_cover = ImageIO.read(new File("default_cover.jpg"));	}
 		catch (IOException e)
 		{	e.printStackTrace();	}
-		icon = new ImageIcon(cover);
-		album_art = new JLabel( icon, JLabel.CENTER);
-		
-//		album_panel.add(album_title);
+		cover = default_cover; 
+		album_art = new JLabel( new ImageIcon(cover) , JLabel.CENTER);
 		album_panel.add(album_art);
-		
 		side_panel.add( album_panel );
 		
 		/////////////////////////////////         Tabbed Panel      /////////////////////////////////////////
 		
 		JTabbedPane tabPane = new JTabbedPane();
-		JPanel gridPane_ID3V1 = new JPanel( new GridLayout(7, 2) );
+		JPanel gridPane_ID3V1 = new JPanel( new GridLayout(6, 2) );
 		JPanel boxPane_ID3V1 = new JPanel(  );
 		JPanel buttonPane_ID3V1 = new JPanel(  );
-		JPanel gridPane_ID3V2 = new JPanel( new GridLayout(7, 2) );
+		JPanel gridPane_ID3V2 = new JPanel( new GridLayout(6, 2) );
 		JPanel boxPane_ID3V2 = new JPanel(  );
 		JPanel buttonPane_ID3V2 = new JPanel(  );
 		
@@ -256,7 +334,7 @@ public class Gui extends JFrame
 		Label_Title_ID3V1 = new JLabel( "Title" );
 		Label_Year_ID3V1 = new JLabel( "Year" );
 		Label_Artist_ID3V1 = new JLabel( "Artist" );
-		Label_Composer_ID3V1 = new JLabel( "Composer" );
+		//Label_Composer_ID3V1 = new JLabel( "Composer" );
 		Label_Album_ID3V1 = new JLabel( "Album" );
 		Label_Comment_ID3V1 = new JLabel( "Comment" );
 		Label_Genre_ID3V1 = new JLabel( "Genre" );	
@@ -266,7 +344,7 @@ public class Gui extends JFrame
 				new ActionListener(){
 					public void actionPerformed( ActionEvent e ){
 						// TODO reset to defaults
-						Text_Title_ID3V1.setText( "" );
+						refreshID3v1();							
 					}
 				});
 		
@@ -276,8 +354,8 @@ public class Gui extends JFrame
 		gridPane_ID3V1.add( Text_Year_ID3V1 );
 		gridPane_ID3V1.add( Label_Artist_ID3V1 );
 		gridPane_ID3V1.add( Text_Artist_ID3V1 );
-		gridPane_ID3V1.add( Label_Composer_ID3V1 );
-		gridPane_ID3V1.add( Text_Composer_ID3V1 );
+		//gridPane_ID3V1.add( Label_Composer_ID3V1 );
+		//gridPane_ID3V1.add( Text_Composer_ID3V1 );
 		gridPane_ID3V1.add( Label_Album_ID3V1 );
 		gridPane_ID3V1.add( Text_Album_ID3V1 );
 		gridPane_ID3V1.add( Label_Comment_ID3V1 );
@@ -298,17 +376,19 @@ public class Gui extends JFrame
 		Label_Title_ID3V2 = new JLabel( "Title" );
 		Label_Year_ID3V2 = new JLabel( "Year" );
 		Label_Artist_ID3V2 = new JLabel( "Artist" );
-		Label_Composer_ID3V2 = new JLabel( "Composer" );
+		//Label_Composer_ID3V2 = new JLabel( "Composer" );
 		Label_Album_ID3V2 = new JLabel( "Album" );
 		Label_Comment_ID3V2 = new JLabel( "Comment" );
 		Label_Genre_ID3V2 = new JLabel( "Genre" );	
+		
 		fix_ID3V2 = new JButton( "Fix" );
+		
 		reset_ID3V2 = new JButton( "Reset" );
 		reset_ID3V2.addActionListener(
 				new ActionListener(){
 					public void actionPerformed(ActionEvent e){
 						// TODO reset to defaults
-						Text_Title_ID3V2.setText( "" );
+						refreshID3v2();
 					}
 				});
 		addfixlistener();
@@ -318,8 +398,8 @@ public class Gui extends JFrame
 		gridPane_ID3V2.add( Text_Year_ID3V2 );
 		gridPane_ID3V2.add( Label_Artist_ID3V2 );
 		gridPane_ID3V2.add( Text_Artist_ID3V2 );
-		gridPane_ID3V2.add( Label_Composer_ID3V2 );
-		gridPane_ID3V2.add( Text_Composer_ID3V2 );
+		//gridPane_ID3V2.add( Label_Composer_ID3V2 );
+		//gridPane_ID3V2.add( Text_Composer_ID3V2 );
 		gridPane_ID3V2.add( Label_Album_ID3V2 );
 		gridPane_ID3V2.add( Text_Album_ID3V2 );
 		gridPane_ID3V2.add( Label_Comment_ID3V2 );
@@ -335,15 +415,19 @@ public class Gui extends JFrame
 		boxPane_ID3V2.add( scrollPane_ID3V2 );
 		boxPane_ID3V2.add( buttonPane_ID3V2 );
 		tabPane.add( "ID3V2" , boxPane_ID3V2 );
+		
 		side_panel.add(tabPane);	
 		
 		////////////////////////////////     lyrics      ///////////////////////////////////////
-		lyrics = "lyrics demonstration";
-		lyrics_field = new JTextArea(lyrics);
+		lyrics_title = new JLabel("Lyrics\n",JLabel.CENTER);
+		Lyrics = "lyris preview";
+		lyrics_field = new JTextArea(Lyrics);
 		lyrics_field.setEditable(false);
 		side_panel_scroll = new JScrollPane(lyrics_field);
 		side_panel_scroll.setPreferredSize(new Dimension(250,300));
-		side_panel.add( side_panel_scroll );
+		side_panel.add(side_panel_scroll);
+		Border border = BorderFactory.createEtchedBorder(EtchedBorder.RAISED);
+		side_panel.setBorder(border);
    }
 	
 	public void addfixlistener(){
@@ -351,43 +435,48 @@ public class Gui extends JFrame
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				// TODO Auto-generated method stub
-				MP3FILE temp = filevector.get(currentindex);
-				try{
-					temp.tag.album = Text_Album_ID3V1.getText();
-					temp.tag.artist = Text_Artist_ID3V1.getText();
-					temp.tag.release_Date = Text_Year_ID3V1.getText();
-					temp.tag.title = Text_Title_ID3V1.getText();
-					temp.tag.comment = Text_Comment_ID3V1.getText();
-					temp.save_id3v1_tag();
-					update( currentindex );
-					refresh( currentindex );
-				}catch( Exception E ){
-					
-				}
+				if( currentRowIndex >= 0 ){
+					MP3FILE temp = filevector.get(currentRowIndex);
+					try{
+						temp.id3v1tag.setAlbumTitle(Text_Album_ID3V1.getText());
+						temp.id3v1tag.setArtist(Text_Artist_ID3V1.getText());
+						temp.id3v1tag.setYearReleased(Text_Year_ID3V1.getText());
+						temp.id3v1tag.setTitle(Text_Title_ID3V1.getText());
+						temp.id3v1tag.setSongComment(Text_Comment_ID3V1.getText());
+						//temp.id3v1tag.setAuthorComposer(Text_Composer_ID3V1.getText());
+						temp.id3v1tag.setSongGenre(Text_Genre_ID3V1.getText());
+						temp.mp3_file.setID3v1Tag(temp.id3v1tag);
+						temp.mp3_file.save();
+						refreshID3v1();
+					}catch( Exception E ){
+					}
+				}else
+					return;
 			}
 			
 		});
 		fix_ID3V2.addActionListener(new ActionListener(){
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				MP3FILE temp = filevector.get( rowsSelected[0] );
-				try{
-					temp.tag.album = Text_Album_ID3V2.getText();
-					temp.tag.artist = Text_Artist_ID3V2.getText();
-					temp.tag.release_Date = Text_Year_ID3V2.getText();
-					temp.tag.title = Text_Title_ID3V2.getText();
-					temp.tag.comment = Text_Comment_ID3V2.getText();
-					temp.save_id3v2_tag();
-					update( currentindex );
-					refresh( currentindex );
-					
-					cover = temp.tag.cover;
-					icon = new ImageIcon(cover);
-					album_art = new JLabel( icon, JLabel.CENTER);
-					album_panel.add(album_art);
-					side_panel.add( album_panel );
-					
-				}catch( Exception E ){ }
+				// TODO Auto-generated method stub
+				if( currentRowIndex >= 0 ){
+					MP3FILE temp = filevector.get( currentRowIndex );
+					try{
+						temp.id3v2tag.setAlbumTitle(Text_Album_ID3V2.getText());
+						temp.id3v2tag.setLeadArtist(Text_Artist_ID3V2.getText());
+						temp.id3v2tag.setYearReleased(Text_Year_ID3V2.getText());
+						temp.id3v2tag.setSongTitle(Text_Title_ID3V2.getText());
+						temp.id3v2tag.setSongComment(Text_Comment_ID3V2.getText());
+						//temp.id3v2tag.setAuthorComposer(Text_Composer_ID3V2.getText());
+						temp.id3v2tag.setSongGenre(Text_Genre_ID3V2.getText());
+						temp.mp3_file.setID3v2Tag(temp.id3v2tag);
+						temp.mp3_file.save();
+						update( currentRowIndex );
+						refreshID3v2( );
+					}catch( Exception E ){ 
+					}
+				}else
+					return;
 			}
 			
 		});
@@ -408,7 +497,7 @@ public class Gui extends JFrame
 		setVisible(true);
 	}
 	
-	///////////////////////////////         helping methods          ///////////////////////////////////
+	//////////////////////////////////////////////////////////////////
 
 	private void createFileMenu()
 	{
@@ -441,7 +530,8 @@ public class Gui extends JFrame
 										mp3 = new MP3FILE( currentFile[ i ] );
 										filevector.add( mp3 );
 										DefaultTableModel model = (DefaultTableModel) table_panel_table.getModel();
-										model.addRow(new Object[]{ mp3.tag.title , mp3.tag.artist, mp3.tag.album, mp3.tag.release_Date , mp3.tag.comment });
+										model.addRow(new Object[]{ mp3.id3v2tag.getSongTitle(), mp3.id3v2tag.getLeadArtist() , mp3.id3v2tag.getAlbumTitle() , mp3.id3v2tag.getYearReleased() , mp3.id3v2tag.getSongComment() });
+										System.out.println("insert file " + currentFile[i].getName() + "    filevector size: " + filevector.size());
 									} catch (Exception e1) {
 										e1.printStackTrace();
 									}						        	
@@ -462,48 +552,82 @@ public class Gui extends JFrame
 	private void createEditMenu()
 	{
 		menu_edit = new JMenu("Edit");
-		menu_file.setMnemonic('E');
-		edit_tag = new JMenuItem("Fix Tag");
+		menu_edit.setMnemonic('E');
+		edit_fix_all = new JMenuItem("Fix All");
+		edit_tag = new JMenuItem("Fix Selected");
 		edit_delete = new JMenuItem("Delete");
-		edit_select = new JMenuItem("Select All");
+		edit_select_all = new JMenuItem("Select All");
 		edit_clean = new JMenuItem("Clean");
+		menu_edit.add(edit_fix_all);
 		menu_edit.add(edit_tag);
 		menu_edit.add(edit_delete);
-		menu_edit.add(edit_select);
+		menu_edit.add(edit_select_all);
 		menu_edit.add(edit_clean);
 		menu_bar.add(menu_edit);
 		
-		edit_tag.addActionListener(new ActionListener(){
+		edit_fix_all.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
+				
+				int totalRows = table_panel_table.getRowCount();
+				for ( int row = 0; row < totalRows; row++ ){
+					try{
+						filevector.get(row).get_correct_tag();
+						update( row );
+					}catch( Exception E ){
+						E.printStackTrace();
+					}
+				}
+				refreshID3v1();
+				refreshID3v2();
+				refreshCover();
+				refreshLyrics();
+			}
+		});
+		
+		edit_tag.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e)
+			{
 				// TODO
+				for( int i = 0 ; i < selectedRowCount ; i++ ){
+					try{
+						filevector.get(selectedRows[i]).get_correct_tag();
+						update(selectedRows[i]);
+					}catch( Exception e1 ){
+					}
+				}
+				refreshID3v1();
+				refreshID3v2();
+				refreshCover();
+				refreshLyrics();
 			}
 		});
 
 		edit_delete.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
-				int [] selectedRows = table_panel_table.getSelectedRows();
-				int selectedRowsCount = table_panel_table.getSelectedRowCount();
-				DefaultTableModel model = (DefaultTableModel) table_panel_table.getModel();
-				for(int i = selectedRowsCount - 1; i >= 0; i--){
-					model.removeRow( selectedRows[ i ] );
-					filevector.removeElementAt( selectedRows[ i ] );
+				while( table_panel_table.getSelectedRowCount() > 0 ){
+					int index = table_panel_table.getSelectedRow();
+					DefaultTableModel model = (DefaultTableModel)table_panel_table.getModel();
+					filevector.removeElementAt( index );
+					model.removeRow(index);
 				}
 			}
 		});
 		
-		edit_select.addActionListener(new ActionListener(){
+		edit_select_all.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
-				DefaultTableModel model = (DefaultTableModel) table_panel_table.getModel();
-				table_panel_table.addRowSelectionInterval( 0 , model.getRowCount() - 1 );
+				table_panel_table.setRowSelectionInterval( 0 , table_panel_table.getRowCount() - 1 );
 			}
 		});
 		
+		
+		//clean table entry
 		edit_clean.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
-				DefaultTableModel model = (DefaultTableModel) table_panel_table.getModel();
-				for(int i=model.getRowCount()-1;i>=0;i--){
-					model.removeRow(i);
-					filevector.removeElementAt(i);
+				int rowcount;
+				while( (rowcount = table_panel_table.getRowCount()) > 0 ){
+					DefaultTableModel model = (DefaultTableModel)table_panel_table.getModel();
+					filevector.remove(rowcount - 1);
+					model.removeRow(rowcount - 1);
 				}
 			}
 		});
@@ -513,7 +637,7 @@ public class Gui extends JFrame
 	{
 		popup=new JPopupMenu();
 		popup_fixall=new JMenuItem("Fix All");
-		popup_tag = new JMenuItem("Fix tag");
+		popup_tag = new JMenuItem("Fix selected");
 		popup_delete = new JMenuItem("Delete");
 		popup_selectall = new JMenuItem("Select All");
 		popup_clean = new JMenuItem("Clean");
@@ -525,91 +649,154 @@ public class Gui extends JFrame
 
 		popup_fixall.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
-				for( MP3FILE file : filevector){
+				int totalRows = table_panel_table.getRowCount();
+				for ( int row = 0; row < totalRows; row++ ){
 					try{
-						file.get_correct_tag();
-						file.save_id3v1_tag();
-						file.save_id3v2_tag();
+						filevector.get(row).get_correct_tag();
+						update( row );
 					}catch( Exception E ){
 						E.printStackTrace();
 					}
-
 				}
-				int totalRows = table_panel_table.getRowCount();
-				for ( int row = 0; row < totalRows; row++ )
-					update( row );
-				refresh( currentindex );
+				refreshID3v1();
+				refreshID3v2();
+				refreshCover();
+				refreshLyrics();
 			}
-
 	});
 		popup_delete.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent e){
-				DefaultTableModel model = (DefaultTableModel) table_panel_table.getModel();
-				for(int i=rowsSelectedCount-1;i>=0;i--){
-					model.removeRow(rowsSelected[i]);
-					filevector.removeElementAt(rowsSelected[i]);
+			public void actionPerformed(ActionEvent e ){
+				while( table_panel_table.getSelectedRowCount() > 0 ){
+					int index = table_panel_table.getSelectedRow();
+					DefaultTableModel model = (DefaultTableModel)table_panel_table.getModel();
+					filevector.removeElementAt( index );
+					model.removeRow(index);
 				}
 			}
 	});
 		popup_selectall.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
-				DefaultTableModel model = (DefaultTableModel) table_panel_table.getModel();
-
-				table_panel_table.addRowSelectionInterval(0,model.getRowCount()-1);
+				table_panel_table.setRowSelectionInterval( 0 , table_panel_table.getRowCount() - 1 );
 			}
 	});
 		popup_clean.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
-				DefaultTableModel model = (DefaultTableModel) table_panel_table.getModel();
-				for(int i=model.getRowCount()-1;i>=0;i--){
-				model.removeRow(i);
-				filevector.removeElementAt(i);
+				int rowcount;
+				while( (rowcount = table_panel_table.getRowCount()) > 0 ){
+					DefaultTableModel model = (DefaultTableModel)table_panel_table.getModel();
+					filevector.remove(rowcount - 1);
+					model.removeRow(rowcount - 1);
 				}
 			}
 	});
 
 		popup_tag.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent e){
-				DefaultTableModel model = (DefaultTableModel) table_panel_table.getModel();
-				MP3FILE temp;
-				for(int i = 0 ; i < rowsSelectedCount ; i++){
-					temp = filevector.get(rowsSelected[i]);
+			public void actionPerformed(ActionEvent e)
+			{
+				// TODO
+				for( int i = 0 ; i < selectedRowCount ; i++ ){
 					try{
-						temp.get_correct_tag();
-						temp.save_id3v1_tag();
-						temp.save_id3v2_tag();
-					}catch( Exception E ){
-						E.printStackTrace();
+						filevector.get(selectedRows[i]).get_correct_tag();
+						update(selectedRows[i]);
+					}catch( Exception e1 ){
 					}
 				}
+				refreshID3v1();
+				refreshID3v2();
+				refreshCover();
+				refreshLyrics();
 			}
 	});
+		
 	}
-
+	
+	//////////////////// Helper Methods /////////////////////
+	
 	private void update ( int row )
 	{
 		int column = 0;
 		DefaultTableModel model = (DefaultTableModel) table_panel_table.getModel();
-		model.setValueAt( filevector.get( row ).tag.title, row , column++ );
-		model.setValueAt( filevector.get( row ).tag.artist, row , column++ );
-		model.setValueAt( filevector.get( row ).tag.album, row , column++ );
-		model.setValueAt( filevector.get( row ).tag.release_Date, row , column++ );
-		model.setValueAt( filevector.get( row ).tag.comment, row , column++ );
+		model.setValueAt( filevector.get( row ).id3v2tag.getSongTitle() , row , column++ );
+		model.setValueAt( filevector.get( row ).id3v2tag.getLeadArtist() , row , column++ );
+		model.setValueAt( filevector.get( row ).id3v2tag.getAlbumTitle() , row , column++ );
+		model.setValueAt( filevector.get( row ).id3v2tag.getYearReleased() , row , column++ );
+		model.setValueAt( filevector.get( row ).id3v2tag.getSongComment() , row , column );
 	}
 	
-	private int refresh( int index )
+	
+	private int refreshID3v1()
 	{
-		Text_Album_ID3V1.setText(filevector.get(index).id3v1tag.getAlbum());
-		Text_Artist_ID3V1.setText(filevector.get(index).id3v1tag.getArtist());
-		Text_Comment_ID3V1.setText(filevector.get(index).id3v1tag.getComment());
-		Text_Title_ID3V1.setText(filevector.get(index).id3v1tag.getSongTitle());
-		Text_Year_ID3V1.setText(filevector.get(index).id3v1tag.getYear());
-
-		Text_Album_ID3V2.setText(filevector.get(index).id3v2tag.getAlbumTitle());
-		Text_Artist_ID3V2.setText(filevector.get(index).id3v2tag.getLeadArtist());
-		Text_Comment_ID3V2.setText(filevector.get(index).id3v2tag.getSongComment());
-		Text_Title_ID3V2.setText(filevector.get(index).id3v2tag.getSongTitle());
-		Text_Year_ID3V2.setText(filevector.get(index).id3v2tag.getYearReleased());
+		if( currentRowIndex >= 0 ){
+			int index = currentRowIndex;
+			Text_Album_ID3V1.setText(filevector.get(index).id3v1tag.getAlbum());
+			Text_Artist_ID3V1.setText(filevector.get(index).id3v1tag.getArtist());
+			Text_Comment_ID3V1.setText(filevector.get(index).id3v1tag.getComment());
+			Text_Title_ID3V1.setText(filevector.get(index).id3v1tag.getSongTitle());
+			Text_Year_ID3V1.setText(filevector.get(index).id3v1tag.getYear());
+			//Text_Composer_ID3V1.setText(filevector.get(index).id3v1tag.getAuthorComposer());
+			Text_Genre_ID3V1.setText(filevector.get(index).id3v1tag.getSongGenre());
+		}else{
+			Text_Album_ID3V1.setText("");
+			Text_Artist_ID3V1.setText("");
+			Text_Comment_ID3V1.setText("");
+			Text_Title_ID3V1.setText("");
+			Text_Year_ID3V1.setText("");
+			//Text_Composer_ID3V1.setText("");
+			Text_Genre_ID3V1.setText("");
+		}
+		return 0;
+	}
+	
+	
+	private int refreshID3v2()
+	{
+		if( currentRowIndex >= 0 ){
+			int index = currentRowIndex;
+			Text_Album_ID3V2.setText(filevector.get(index).id3v2tag.getAlbumTitle());
+			Text_Artist_ID3V2.setText(filevector.get(index).id3v2tag.getLeadArtist());
+			Text_Comment_ID3V2.setText(filevector.get(index).id3v2tag.getSongComment());
+			Text_Title_ID3V2.setText(filevector.get(index).id3v2tag.getSongTitle());
+			Text_Year_ID3V2.setText(filevector.get(index).id3v2tag.getYearReleased());
+			//Text_Composer_ID3V2.setText(filevector.get(index).id3v2tag.getAuthorComposer());
+			Text_Genre_ID3V2.setText(filevector.get(index).id3v2tag.getSongGenre());
+		}else{
+			Text_Album_ID3V2.setText("");
+			Text_Artist_ID3V2.setText("");
+			Text_Comment_ID3V2.setText("");
+			Text_Title_ID3V2.setText("");
+			Text_Year_ID3V2.setText("");
+			//Text_Composer_ID3V2.setText("");
+			Text_Genre_ID3V2.setText("");
+		}
+		
+		return 0;
+	}
+	private int refreshCover(){
+		if( currentRowIndex >= 0 ){
+			int index = currentRowIndex;
+			cover = filevector.get(currentRowIndex).cover;
+			if(cover == null)
+				cover = default_cover;
+			ImageIcon icon = new ImageIcon(cover);
+			album_art.setIcon(icon);
+		}
+		return 0;
+	}
+	private int refreshLyrics(){
+		if( currentRowIndex >= 0 ){
+			int index = currentRowIndex;
+			if( filevector.get(currentRowIndex).lyrics != null ){
+				Lyrics = new String(filevector.get(currentRowIndex).lyrics);
+				lyrics_field.setText(Lyrics);
+			}
+			else{
+				Lyrics = "lyrics preview";
+				lyrics_field.setText(Lyrics);
+			}				
+		}else{
+			Lyrics = "lyrics preview";
+			lyrics_field.setText(Lyrics);
+		}
 		return 0;
 	}
 }
