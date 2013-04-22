@@ -7,9 +7,18 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.Vector;
 
 import javax.imageio.ImageIO;
@@ -17,7 +26,6 @@ import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -27,6 +35,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
@@ -56,12 +65,13 @@ public class Gui extends JFrame
 	
 	//////// Table_Panel /////////
 	JPanel table_panel,button_panel;
-	JTextArea table_log;
-	JScrollPane table_panel_scroll,table_log_scroll;
-	JButton autofix_button,saveimage_button,rename_button;
+	//JTextArea table_log;
+	JProgressBar progress_bar;
+	JScrollPane table_panel_scroll;//,table_log_scroll;
+	JButton autofix_button,saveimage_button,rename_button,synchronize,auto_rename;
 	JFileChooser savedialog;
 	JTable table_panel_table;
-	String[] categories = { "Title", "Artist", "Album", "Release Year", "Comment" };
+	String[] categories = { "File Name","Title", "Artist", "Album", "Release Year", "Comment" };
 	Object[][] data = { };
 	JPopupMenu popup;
 	JMenuItem popup_fixall, popup_tag, popup_delete, popup_selectall, popup_clean;
@@ -162,16 +172,31 @@ public class Gui extends JFrame
 		table_panel_scroll = new JScrollPane( table_panel_table );
 		table_panel = new JPanel( new BorderLayout() );
 		table_panel.add( table_panel_scroll, BorderLayout.CENTER );
-		table_log = new JTextArea();
-		table_log_scroll = new JScrollPane( table_log );
-		table_panel.add(table_log_scroll,BorderLayout.SOUTH);
+		
+		progress_bar = new JProgressBar(0,100);
+		progress_bar.setPreferredSize(new Dimension(50,35));
+		//pb.setSize(200, 100);
+		progress_bar.setString("Welcome To Music Tagger");
+		progress_bar.setStringPainted(true);
+		progress_bar.setVisible(true);
+		progress_bar.setValue(0);
+		table_panel.add(progress_bar,BorderLayout.SOUTH);
+		//table_log = new JTextArea();
+		//table_log_scroll = new JScrollPane( table_log );
+		//table_panel.add(table_log_scroll,BorderLayout.SOUTH);
+		
+		
 		autofix_button = new JButton(new ImageIcon("autofix.jpg")); 
 		saveimage_button = new JButton(new ImageIcon("save.jpg"));
 		rename_button = new JButton(new ImageIcon("rename.jpg"));
+		synchronize = new JButton(new ImageIcon("transfer.jpg"));
+		auto_rename = new JButton(new ImageIcon("auto_rename.jpg"));
 		button_panel = new JPanel( new FlowLayout(FlowLayout.LEFT));
 		button_panel.add(autofix_button);
 		button_panel.add(saveimage_button);
 		button_panel.add(rename_button);
+		button_panel.add(auto_rename);
+		button_panel.add(synchronize);
 		table_panel.add(button_panel,BorderLayout.NORTH);
 		createPopup();
 		
@@ -179,7 +204,13 @@ public class Gui extends JFrame
 			public void actionPerformed(ActionEvent e) {
 				// TODO Auto-generated method stub
 				//j.setVisible(true);
+				
+				System.out.println("Auto Fixing....");
+				
 				int totalRows = table_panel_table.getRowCount();
+				progress_bar.setString("auto batch fixing...");
+				progress_bar.update(progress_bar.getGraphics());
+				
 				for ( int row = 0; row < totalRows; row++ ){
 					try{
 						filevector.get(row).get_correct_tag();
@@ -187,7 +218,15 @@ public class Gui extends JFrame
 					}catch( Exception E ){
 						E.printStackTrace();
 					}
+					System.out.println((int)((row+1)/(double)totalRows*100));
+					//progress_bar.setVisible(true);
+					progress_bar.setValue((int)((row+1)/(double)totalRows*100));
+					progress_bar.update(progress_bar.getGraphics());
+					
 				}
+				progress_bar.setString("Auto Fixing Done");
+				progress_bar.setValue(0);
+				progress_bar.update(progress_bar.getGraphics());
 				refreshID3v1();
 				refreshID3v2();
 				refreshCover();
@@ -213,6 +252,39 @@ public class Gui extends JFrame
 				}
 			}
 		});
+		auto_rename.addActionListener(new ActionListener(){
+			
+			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub
+				for( int index = 0 ; index < filevector.size() ; index++ ){
+					File oldfile = filevector.get(index).mp3_file.getMp3file();
+					String oldname = oldfile.getName();
+					String directory = oldfile.getParent();
+					String newname = filevector.get(index).id3v2tag.getSongTitle();
+					newname = newname + ".mp3";
+					BufferedImage image = filevector.get(index).cover;
+					String Ly = filevector.get(index).lyrics;
+					//= JOptionPane.showInputDialog(table_panel, "rename to :", oldname,JOptionPane.QUESTION_MESSAGE);
+					if( newname.compareTo(oldname) != 0 ){
+						//if( newname.endsWith(".mp3") ){
+							System.out.println("rename processing..");
+							File newfile = new File(directory + "/"+newname);
+							oldfile.renameTo(newfile);
+							try{
+								MP3FILE temp = temp = new MP3FILE(newfile,image,Ly);
+								filevector.set(index, temp);
+								refreshID3v1();
+								refreshID3v2();
+								refreshLyrics();
+								refreshCover();
+							}catch(Exception e3){	
+							}
+						//}
+					}
+					update(index);
+				}
+			}
+		});
 		rename_button.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e) {
 				// TODO Auto-generated method stub
@@ -223,13 +295,15 @@ public class Gui extends JFrame
 					String oldname = oldfile.getName();
 					String directory = oldfile.getParent();
 					String newname = JOptionPane.showInputDialog(table_panel, "rename to :", oldname,JOptionPane.QUESTION_MESSAGE);
+					BufferedImage image = filevector.get(currentRowIndex).cover;
+					String Ly = filevector.get(currentRowIndex).lyrics;
 					if( newname.compareTo(oldname) != 0 ){
 						if( newname.endsWith(".mp3") ){
 							System.out.println("rename processing..");
 							File newfile = new File(directory + "/"+newname);
 							oldfile.renameTo(newfile);
 							try{
-								MP3FILE temp = temp = new MP3FILE(newfile);
+								MP3FILE temp = temp = new MP3FILE(newfile,image,Ly);
 								filevector.set(currentRowIndex, temp);
 								refreshID3v1();
 								refreshID3v2();
@@ -239,10 +313,21 @@ public class Gui extends JFrame
 							}
 						}
 					}
+					update(currentRowIndex);
 				}
 			}
 		});
-		
+		synchronize.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e) {
+				Iterator<MP3FILE> iterate = filevector.iterator();
+				Vector<File> chosen_files = new Vector<File>();
+				while( iterate.hasNext() ){
+					MP3FILE m = iterate.next();
+					chosen_files.add(m.mp3_file.getMp3file());
+				}
+				transfer_frame f = new transfer_frame(chosen_files);
+			}
+		});
 		table_panel_scroll.addMouseListener(new MouseAdapter(){
 			public void mousePressed(MouseEvent e) {
 				Point point = e.getPoint();
@@ -293,6 +378,39 @@ public class Gui extends JFrame
 					}
 					System.out.println("right click pressed");
 					popup.show(e.getComponent(),e.getX(),e.getY());
+				}
+			}
+		});
+		table_panel_table.getTableHeader().addMouseListener(new MouseAdapter(){
+			public void mouseClicked(MouseEvent e){
+				table_panel_table.clearSelection();
+				int col =  table_panel_table.getTableHeader().columnAtPoint(e.getPoint());
+				mp3structure[] list = new mp3structure[filevector.size()];
+				for( int i = 0 ; i < filevector.size() ; i++ ){
+					list[i] = new mp3structure(filevector.get(i).mp3_filename,filevector.get(i).id3v2tag.getSongTitle(),filevector.get(i).id3v2tag.getLeadArtist(),filevector.get(i).id3v2tag.getAlbumTitle(),filevector.get(i).id3v2tag.getYearReleased(),filevector.get(i));
+				}
+				switch(col){
+				case 0:
+					Arrays.sort(list,new comparefilename());
+					break;
+				case 1:
+					Arrays.sort(list,new comparetitle());
+					break;
+				case 2:
+					Arrays.sort(list,new compareartist());
+					break;
+				case 3:
+					Arrays.sort(list,new comparealbum());
+					break;
+				case 4:
+					Arrays.sort(list,new compareyear());
+					break;
+				}
+				for( int i = 0 ; i < filevector.size() ; i++ ){
+					filevector.set(i, list[i].mp3);
+				}
+				for( int i = 0 ; i < filevector.size() ; i++ ){
+					update(i);
 				}
 			}
 		});
@@ -530,7 +648,7 @@ public class Gui extends JFrame
 										mp3 = new MP3FILE( currentFile[ i ] );
 										filevector.add( mp3 );
 										DefaultTableModel model = (DefaultTableModel) table_panel_table.getModel();
-										model.addRow(new Object[]{ mp3.id3v2tag.getSongTitle(), mp3.id3v2tag.getLeadArtist() , mp3.id3v2tag.getAlbumTitle() , mp3.id3v2tag.getYearReleased() , mp3.id3v2tag.getSongComment() });
+										model.addRow(new Object[]{ mp3.mp3_filename,mp3.id3v2tag.getSongTitle(), mp3.id3v2tag.getLeadArtist() , mp3.id3v2tag.getAlbumTitle() , mp3.id3v2tag.getYearReleased() , mp3.id3v2tag.getSongComment() });
 										System.out.println("insert file " + currentFile[i].getName() + "    filevector size: " + filevector.size());
 									} catch (Exception e1) {
 										e1.printStackTrace();
@@ -569,6 +687,8 @@ public class Gui extends JFrame
 			public void actionPerformed(ActionEvent e){
 				
 				int totalRows = table_panel_table.getRowCount();
+				progress_bar.setString("batch fixing...");
+				progress_bar.update(progress_bar.getGraphics());
 				for ( int row = 0; row < totalRows; row++ ){
 					try{
 						filevector.get(row).get_correct_tag();
@@ -576,7 +696,12 @@ public class Gui extends JFrame
 					}catch( Exception E ){
 						E.printStackTrace();
 					}
+					progress_bar.setValue((int)((row+1)/(double)totalRows*100));
+					progress_bar.update(progress_bar.getGraphics());
 				}
+				progress_bar.setString("batch fixing done");
+				progress_bar.setValue(0);
+				progress_bar.update(progress_bar.getGraphics());
 				refreshID3v1();
 				refreshID3v2();
 				refreshCover();
@@ -588,13 +713,20 @@ public class Gui extends JFrame
 			public void actionPerformed(ActionEvent e)
 			{
 				// TODO
+				progress_bar.setString("fixing...");
+				progress_bar.update(progress_bar.getGraphics());
 				for( int i = 0 ; i < selectedRowCount ; i++ ){
 					try{
 						filevector.get(selectedRows[i]).get_correct_tag();
 						update(selectedRows[i]);
 					}catch( Exception e1 ){
 					}
+					progress_bar.setValue((int)((i+1)/(double)selectedRowCount*100));
+					progress_bar.update(progress_bar.getGraphics());
 				}
+				progress_bar.setString("fixing done");
+				progress_bar.setValue(0);
+				progress_bar.update(progress_bar.getGraphics());
 				refreshID3v1();
 				refreshID3v2();
 				refreshCover();
@@ -649,7 +781,10 @@ public class Gui extends JFrame
 
 		popup_fixall.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
+
 				int totalRows = table_panel_table.getRowCount();
+				progress_bar.setString("Batch Fixing...");
+				progress_bar.update(progress_bar.getGraphics());
 				for ( int row = 0; row < totalRows; row++ ){
 					try{
 						filevector.get(row).get_correct_tag();
@@ -657,12 +792,18 @@ public class Gui extends JFrame
 					}catch( Exception E ){
 						E.printStackTrace();
 					}
+					progress_bar.setValue((int)((row+1)/(double)totalRows*100));
+					progress_bar.update(progress_bar.getGraphics());
 				}
+				progress_bar.setString("Batch Fixing Done");
+				progress_bar.setValue(0);
+				progress_bar.update(progress_bar.getGraphics());
 				refreshID3v1();
 				refreshID3v2();
 				refreshCover();
 				refreshLyrics();
 			}
+			
 	});
 		popup_delete.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e ){
@@ -694,13 +835,20 @@ public class Gui extends JFrame
 			public void actionPerformed(ActionEvent e)
 			{
 				// TODO
+				progress_bar.setString("Fixing...");
+				progress_bar.update(progress_bar.getGraphics());
 				for( int i = 0 ; i < selectedRowCount ; i++ ){
 					try{
 						filevector.get(selectedRows[i]).get_correct_tag();
 						update(selectedRows[i]);
 					}catch( Exception e1 ){
 					}
+					progress_bar.setValue((int)((i+1)/(double)selectedRowCount*100));
+					progress_bar.update(progress_bar.getGraphics());
 				}
+				progress_bar.setString("Fixing Done");
+				progress_bar.setValue(0);
+				progress_bar.update(progress_bar.getGraphics());
 				refreshID3v1();
 				refreshID3v2();
 				refreshCover();
@@ -716,6 +864,7 @@ public class Gui extends JFrame
 	{
 		int column = 0;
 		DefaultTableModel model = (DefaultTableModel) table_panel_table.getModel();
+		model.setValueAt( filevector.get( row ).mp3_filename , row , column++ );
 		model.setValueAt( filevector.get( row ).id3v2tag.getSongTitle() , row , column++ );
 		model.setValueAt( filevector.get( row ).id3v2tag.getLeadArtist() , row , column++ );
 		model.setValueAt( filevector.get( row ).id3v2tag.getAlbumTitle() , row , column++ );
@@ -798,5 +947,308 @@ public class Gui extends JFrame
 			lyrics_field.setText(Lyrics);
 		}
 		return 0;
+	}
+	
+	private class mp3structure{
+		public String FileName;
+		public String Title;
+		public String Artist;
+		public String Album;
+		public String Year;
+		public MP3FILE mp3;
+		public mp3structure( String filename , String title , String artist , String album , String year , MP3FILE m ){
+			FileName = filename;
+			Title = title;
+			Artist = artist;
+			Album = album;
+			Year = year;
+			mp3 = m;
+		}
+	}
+	private class comparefilename<T> implements Comparator<T>{
+
+		@Override
+		public int compare(T o1, T o2) {
+			// TODO Auto-generated method stub
+			mp3structure m1 = (mp3structure)o1;
+			mp3structure m2 = (mp3structure)o2;
+			return m1.FileName.compareTo(m2.FileName);
+		}
+		
+	}
+	private class comparetitle<T> implements Comparator<T>{
+
+		@Override
+		public int compare(T o1, T o2) {
+			// TODO Auto-generated method stub
+			mp3structure m1 = (mp3structure)o1;
+			mp3structure m2 = (mp3structure)o2;
+			return m1.Title.compareTo(m2.Title)	; 
+		}
+		
+	}
+	private class compareartist<T> implements Comparator<T>{
+
+		@Override
+		public int compare(T o1, T o2) {
+			// TODO Auto-generated method stub
+			mp3structure m1 = (mp3structure)o1;
+			mp3structure m2 = (mp3structure)o2;
+			return m1.Artist.compareTo(m2.Artist);
+		}
+		
+	}
+	private class comparealbum<T> implements Comparator<T>{
+
+		@Override
+		public int compare(T o1, T o2) {
+			// TODO Auto-generated method stub
+			mp3structure m1 = (mp3structure)o1;
+			mp3structure m2 = (mp3structure)o2;
+			return m1.Album.compareTo(m2.Album);
+		}
+		
+	}
+	private class compareyear implements Comparator{
+
+		@Override
+		public int compare(Object o1, Object o2) {
+			// TODO Auto-generated method stub
+			mp3structure m1 = (mp3structure)o1;
+			mp3structure m2 = (mp3structure)o2;
+			int y1 = Integer.parseInt(m1.Year);
+			int y2 = Integer.parseInt(m2.Year);
+			if( y1 > y2 ) return 1;
+			else if( y1 < y2 ) return -1;
+			return 0;
+		}
+		
+	}
+	
+	
+	private class transfer_frame extends JFrame{
+		private JFrame itself;
+		public JTable file_list_table;
+		public JScrollPane file_pane;
+		public JPanel button_panel;
+		public JButton browse_button,wifi_syn_button,synchronize_button,cancel_button,delete_button;
+		public JLabel progress_log;
+		public Vector<File> file_list;
+		
+		private final JFileChooser fileselector = new JFileChooser();
+		public transfer_frame( Vector<File> chosen_files ){
+			super();
+			itself = this;
+			construct_button_panel();
+			construct_list_table(chosen_files);
+			construct_log();
+			setLayout( new BorderLayout() );
+			add(file_pane,BorderLayout.CENTER);
+			add(button_panel,BorderLayout.NORTH);
+			add(progress_log,BorderLayout.SOUTH);
+			
+			setTitle("File Transfer");
+			pack();
+			setSize( 700,400 );
+			setVisible(true);
+			setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+			this.addWindowListener(new WindowAdapter(){
+				public void windowClosing(WindowEvent event){
+					itself.dispose();
+				}
+			});
+		}
+		
+		private void construct_button_panel(){
+			fileselector.setMultiSelectionEnabled(true);
+			button_panel = new JPanel();
+			button_panel.setLayout(new BoxLayout(button_panel,BoxLayout.LINE_AXIS));
+			browse_button = new JButton(" Browse ");
+			wifi_syn_button = new JButton("WIFI Syn");
+			synchronize_button = new JButton("Synchronize");
+			cancel_button = new JButton(" Cancel ");
+			delete_button = new JButton(" Delete ");
+			browse_button.addActionListener(new ActionListener(){
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					// TODO Auto-generated method stub
+					int returnVal = fileselector.showOpenDialog(file_list_table);
+					if ( returnVal == JFileChooser.APPROVE_OPTION ) {
+						File currentFile[] = fileselector.getSelectedFiles();
+						int len = currentFile.length;
+						String filename;
+						File mp3;
+						for( int i = 0; i < len; i++ ){
+							//filename = currentFile[ i ].getName();
+							//String extension = filename.substring(filename.lastIndexOf(".") + 1, filename.length());
+							//String mp3extension = "mp3";
+							//if (extension.compareTo(mp3extension) != 0) {
+							//	JOptionPane.showMessageDialog(null, "Currently We only support MP3 menu_file");
+							//}else{
+								file_list.add(currentFile[i]);
+								DefaultTableModel model = (DefaultTableModel) file_list_table.getModel();
+								model.addRow(new Object[]{ currentFile[i].getName(), currentFile[i].getParent()});        	
+							//}
+						}
+					} else {}
+				}
+				
+			});
+			cancel_button.addActionListener(new ActionListener(){
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					// TODO Auto-generated method stub
+					itself.dispose();
+				}
+				
+			});
+			delete_button.addActionListener(new ActionListener(){
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					// TODO Auto-generated method stub
+					DefaultTableModel model = (DefaultTableModel) file_list_table.getModel();
+					while( file_list_table.getSelectedRowCount() > 0 ){
+						file_list.remove(file_list_table.getSelectedRow());
+						model.removeRow(file_list_table.getSelectedRow());
+					}
+				}
+				
+			});
+			wifi_syn_button.addActionListener(new ActionListener(){
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					// TODO Auto-generated method stub
+					
+					ServerSocket server = null;
+					try {
+						Socket clientSocket;
+						int port = Integer.parseInt(JOptionPane.showInputDialog("Enter Port Number", "8000"));
+						
+						
+						server = new ServerSocket(port);
+						clientSocket = server.accept();
+						int length = file_list.size();
+						DataOutputStream dataoutput = new DataOutputStream(clientSocket.getOutputStream());
+						dataoutput.writeInt(length);
+						Iterator<File> f = file_list.iterator();
+						File transfer_file;
+						progress_log.setText("FILE SYNCHRONIZING PLEASE WAIT");
+						while( f.hasNext() ){
+							
+							transfer_file = f.next();
+							String name = transfer_file.getName();
+							int namelength = name.length();
+							long size = transfer_file.length();
+							System.out.println(size);
+							FileInputStream input = new FileInputStream(transfer_file);
+							byte[] data = new byte[(int)size];
+							input.read(data);
+							dataoutput.writeInt(namelength);
+							for( int i = 0 ; i < namelength ; i++ ){
+								dataoutput.writeChar(name.charAt(i));
+							}
+							dataoutput.writeLong(size);
+							for ( int j = 0 ; j < size ; j++ ){
+								dataoutput.writeByte(data[j]);
+							}
+							
+						}
+						dataoutput.close();
+						clientSocket.close();
+						server.close();
+						progress_log.setText("FILE SYNCHRONIZATION DONE");
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						//e1.printStackTrace();
+						System.out.println("error wifi sync");
+						try{
+							if(server != null)
+								server.close();
+						}catch(Exception e3){
+							
+						}
+					}
+				}
+				
+			});
+			synchronize_button.addActionListener(new ActionListener(){
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					// TODO Auto-generated method stub
+					Socket socket;
+					try{	
+						socket = new Socket("sslab04.cs.purdue.edu",8080);
+						int length = file_list.size();
+						DataOutputStream dataoutput = new DataOutputStream(socket.getOutputStream());
+						dataoutput.writeInt(1);
+						dataoutput.writeInt(length);
+						Iterator<File> f = file_list.iterator();
+						File transfer_file;
+						
+						progress_log.setText("FILE SYNCHRONIZING PLEASE WAIT");
+						while( f.hasNext() ){
+							
+							transfer_file = f.next();
+							String name = transfer_file.getName();
+							int namelength = name.length();
+							long size = transfer_file.length();
+							FileInputStream input = new FileInputStream(transfer_file);
+							byte[] data = new byte[(int)size];
+							System.out.println(data.length);
+							input.read(data);
+							input.close();
+							dataoutput.writeInt(namelength);
+							for( int i = 0 ; i < namelength ; i++ ){
+								dataoutput.writeChar(name.charAt(i));
+							}
+							dataoutput.writeLong(size);
+							for ( int j = 0 ; j < size ; j++ ){
+								dataoutput.writeByte(data[j]);
+							}
+							
+							
+						}
+						dataoutput.close();
+						socket.close();
+						progress_log.setText("FILE SYNCHRONIZATION DONE");
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				}
+			});
+			button_panel.add(wifi_syn_button);
+			button_panel.add(synchronize_button);
+			button_panel.add(browse_button);
+			button_panel.add(cancel_button);
+			button_panel.add(delete_button);
+			
+		}
+		public void construct_list_table(Vector<File> chosen_files){
+			file_list = new Vector<File>(chosen_files);
+			file_list_table = new JTable(new DefaultTableModel( new Object[][]{}, new String[]{"Music Name","Directory"} ){
+				public boolean isCellEditable(int rowIndex, int colIndex) {
+					return false;  
+				}
+			});
+			file_list_table.setCellSelectionEnabled(false);
+			file_list_table.setRowSelectionAllowed(true);
+			file_pane = new JScrollPane(file_list_table);
+			DefaultTableModel model = (DefaultTableModel)file_list_table.getModel();
+			Iterator<File> f = file_list.iterator();
+			while( f.hasNext() ){
+				File file = f.next();
+				model.addRow(new Object[]{file.getName(),file.getParent()});
+			}
+		}
+		public void construct_log(){
+			progress_log = new JLabel();
+			progress_log.setVisible(true);
+			progress_log.setText("FILE SYNCHRONIZATION");
+		}
 	}
 }
