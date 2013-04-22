@@ -21,6 +21,7 @@
 		
 		public MP3File mp3_file;
 		public String mp3_path;
+		public String mp3_filename;
 		public ID3v1 id3v1tag;
 		public AbstractMP3Tag id3v2tag;
 		private String track_mbid;
@@ -30,6 +31,7 @@
 		public MP3FILE( File file ) throws Exception{
 			
 			mp3_path = file.getAbsolutePath();
+			mp3_filename = file.getName();
 			mp3_file = new MP3File(file);
 			//check and construct id3v2 tag
 			if(mp3_file.hasID3v2Tag()){
@@ -52,6 +54,34 @@
 			}
 			cover = null;
 			lyrics = null;
+		}
+		
+		public MP3FILE( File file , BufferedImage image , String ly ) throws Exception{
+			
+			mp3_path = file.getAbsolutePath();
+			mp3_filename = file.getName();
+			mp3_file = new MP3File(file);
+			//check and construct id3v2 tag
+			if(mp3_file.hasID3v2Tag()){
+				id3v2tag = mp3_file.getID3v2Tag();
+			}else{
+				id3v2tag = new ID3v2_4();
+				mp3_file.setID3v2Tag(id3v2tag);
+				mp3_file.save();
+				id3v2tag = mp3_file.getID3v2Tag();
+			}
+			
+			//check or construct id3v1 tag
+			if(mp3_file.hasID3v1Tag()){
+				id3v1tag = mp3_file.getID3v1Tag();
+			}else{
+				id3v1tag = new ID3v1();
+				mp3_file.setID3v1Tag(id3v1tag);
+				mp3_file.save();
+				id3v1tag = mp3_file.getID3v1Tag();
+			}
+			cover = image;
+			lyrics = ly;
 		}
 		
 		public int get_correct_tag() throws Exception{
